@@ -25,6 +25,8 @@ public class Manager : MonoBehaviour
     public List<GameObject> allCubes;
     // list of all possible moves
     public List<string> moveList;
+    // how much to scramble cube at start
+    public int ScrambleAmt;
     /* 
     left : 0, *, *
     m : 1, *, *
@@ -56,10 +58,13 @@ public class Manager : MonoBehaviour
         // making sure initial state of cube is "solved"
         print(CheckSolved());
 
+        /*
         foreach( string s in moveList)
         {
             Rotate(s);
         }
+        */
+        Scramble(ScrambleAmt);
     }
 
     void Update()
@@ -505,4 +510,13 @@ public class Manager : MonoBehaviour
         UpdateArray();
         print(CheckSolved());
     }
+
+    void Scramble(int moves)
+    {
+        for (int i = 0; i < moves + 1; i++)
+        {
+            Rotate(moveList[Random.Range(0, moveList.Count)]);
+        }
+    }
 }
+
