@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using np = Numpy;
 using System.Linq;
+using TMPro;
 public class Manager : MonoBehaviour
 {
     // cube prefab that is used to spawn all cubes
@@ -27,8 +28,15 @@ public class Manager : MonoBehaviour
     public List<string> moveList;
     // how much to scramble cube at start
     public int ScrambleAmt;
+    // list of all on-screen buttons
+    public GameObject XButton;
+    public GameObject YButton;
+    public GameObject ZButton;
 
+    // center position of cube
     private Vector3 center;
+
+    public Canvas canvas;
 
     void Start()
     {
@@ -44,6 +52,11 @@ public class Manager : MonoBehaviour
         // "m" is front middle vertical, "e" is front middle horizontal, "s" is middle wrapper between front and back
         string[] strArr = { "l", "li", "m", "mi", "r", "ri", "d", "di", "e", "ei", "u", "ui", "f", "fi", "s", "si", "b", "bi" };
         moveList.AddRange(strArr);
+
+        // SpawnButtons();
+
+        SpawnArrows();
+
         // making sure initial state of cube is "solved"
         print(CheckSolved());
         Scramble(ScrambleAmt);
@@ -110,7 +123,7 @@ public class Manager : MonoBehaviour
         Rotate(axis, layer, spinDirection);
     }
 
-    void Rotate(string axis, int layer, int direction)
+    public void Rotate(string axis, int layer, int direction)
     {
        /*
         * axis : "x", "y", or "z"
@@ -364,6 +377,65 @@ public class Manager : MonoBehaviour
             if (ax == "z")
                 lay = layerz[Random.Range(0, layerz.Length - 1)];
             Rotate(ax, lay, dir);
+        }
+    }
+
+    void SpawnButtons()
+    {
+        foreach (Transform child in canvas.transform)
+            child.gameObject.SetActive(true);
+        // if (cubeDims[0] == 3 && cubeDims[1] == 3 && cubeDims[2] == 3)
+        //else
+        //{
+            for (int i = 1; i < cubeDims[0]; i++)
+            {
+                GameObject button = Instantiate(XButton, XButton.transform.position + new Vector3(60 * (i), 0, 0), Quaternion.identity, canvas.transform);
+                button.GetComponent<ScreenButton>().layer = i;
+                button.GetComponent<ScreenButton>().axis = "x";
+                button.GetComponent<ScreenButton>().direction = 1;
+                button.transform.GetChild(0).GetComponent<TMPro.TextMeshProUGUI>().text = i.ToString();
+            }
+            for (int i = 1; i < cubeDims[1]; i++)
+            {
+                GameObject button = Instantiate(YButton, YButton.transform.position + new Vector3(60 * (i), 0, 0), Quaternion.identity, canvas.transform);
+                button.GetComponent<ScreenButton>().layer = i;
+                button.GetComponent<ScreenButton>().axis = "y";
+                button.GetComponent<ScreenButton>().direction = 1;
+                button.transform.GetChild(0).GetComponent<TMPro.TextMeshProUGUI>().text = i.ToString();
+            }
+            for (int i = 1; i < cubeDims[2]; i++)
+            {
+                GameObject button = Instantiate(ZButton, ZButton.transform.position + new Vector3(60 * (i), 0, 0), Quaternion.identity, canvas.transform);
+                button.GetComponent<ScreenButton>().layer = i;
+                button.GetComponent<ScreenButton>().axis = "z";
+                button.GetComponent<ScreenButton>().direction = 1;
+                button.transform.GetChild(0).GetComponent<TMPro.TextMeshProUGUI>().text = i.ToString();
+            }
+
+
+       //}
+    }
+
+    void SpawnArrows()
+    {
+        // TrianglePrimitive.CreateObject();
+        for (int i = 0; i < cubeDims[0]; i++)
+        {
+            GameObject tri1 = TrianglePrimitive.CreateObject();
+            tri1.transform.position = new Vector3(-1, cubeDims[0] - 1, i);
+            tri1.transform.rotation = Quaternion.Euler(-90, 0, 90);
+            GameObject tri2 = TrianglePrimitive.CreateObject();
+            tri2.transform.position = new Vector3(cubeDims[0], cubeDims[0] - 1, i);
+            tri2.transform.rotation = Quaternion.Euler(-90, 0, 270);
+        }
+        for (int i = 0; i < cubeDims[0]; i++)
+        {
+            GameObject tri1 = TrianglePrimitive.CreateObject();
+            tri1.transform.position = new Vector3(i, cubeDims[2] - 1, -1);
+            tri1.transform.rotation = Quaternion.Euler(-90, 0, 0);
+            GameObject tri2 = TrianglePrimitive.CreateObject();
+            tri2.transform.position = new Vector3(i, cubeDims[2] - 1, cubeDims[2]);
+            tri2.transform.rotation = Quaternion.Euler(-90, 0, 180);
         }
     }
 }
