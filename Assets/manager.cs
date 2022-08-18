@@ -55,11 +55,11 @@ public class Manager : MonoBehaviour
 
         // SpawnButtons();
 
-        SpawnArrows();
+            //SpawnArrows();
 
         // making sure initial state of cube is "solved"
         print(CheckSolved());
-        Scramble(ScrambleAmt);
+            //Scramble(ScrambleAmt);
 
         // basic script to test every layer of a nxnxn cube forwards and backwards
         /*
@@ -82,6 +82,7 @@ public class Manager : MonoBehaviour
             System.Tuple<string, int, int> move = MoveQueue.Dequeue();
             Rotate(move.Item1, move.Item2, move.Item3);
         }
+        center = GameObject.Find("THE CUBE").transform.position;
     }
 
     void RotateStr(string rot)
@@ -198,6 +199,7 @@ public class Manager : MonoBehaviour
         GameObject[,,] solvedState = new GameObject[cubeDims[0], cubeDims[1], cubeDims[2]];
         List<GameObject> allCubes = new();
         center = new Vector3((cubeDims[0] - 1)/2f, (cubeDims[0] - 1)/2f, (cubeDims[0] - 1)/2f);
+        GameObject.Find("THE CUBE").transform.position = center;
         for (x = 0; x < dim0; x++)
         {
             for (y = 0; y < dim1; y++)
@@ -207,7 +209,7 @@ public class Manager : MonoBehaviour
                     // spawning cube at position (x, y, z) centered around 0, 0, 0
                     if (x == 0 || y == 0 || z == 0 || x == dim0 - 1 || y == dim1 - 1 || z == dim2 - 1)
                     {
-                        rubixCube[x, y, z] = Instantiate(cubePrefab, new Vector3(x, y, z), Quaternion.identity);
+                        rubixCube[x, y, z] = Instantiate(cubePrefab, new Vector3(x, y, z), Quaternion.identity, GameObject.Find("THE CUBE").transform);
                         allCubes.Add(rubixCube[x, y, z]);
                         // creating a copy of material to give to cube
                         Material thisMat = new(cubeMaterialBase);
