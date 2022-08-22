@@ -39,6 +39,7 @@ public class TrianglePrimitive
         var filter = obj.AddComponent<MeshFilter>();
         var renderer = obj.AddComponent<MeshRenderer>();
         var collider = obj.AddComponent<MeshCollider>();
+        var script = obj.AddComponent<Triangle>();
 
         filter.sharedMesh = mesh;
         collider.sharedMesh = mesh;
