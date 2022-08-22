@@ -209,7 +209,7 @@ public class Manager : MonoBehaviour
                     // spawning cube at position (x, y, z) centered around 0, 0, 0
                     if (x == 0 || y == 0 || z == 0 || x == dim0 - 1 || y == dim1 - 1 || z == dim2 - 1)
                     {
-                        rubixCube[x, y, z] = Instantiate(cubePrefab, new Vector3(x, y, z), Quaternion.identity, GameObject.Find("THE CUBE").transform);
+                        rubixCube[x, y, z] = Instantiate(cubePrefab, new Vector3(x-1, y-1, z-1), Quaternion.identity, GameObject.Find("THE CUBE").transform);
                         allCubes.Add(rubixCube[x, y, z]);
                         // creating a copy of material to give to cube
                         Material thisMat = new(cubeMaterialBase);
