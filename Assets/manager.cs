@@ -1,9 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using np = Numpy;
 using System.Linq;
-using TMPro;
 public class Manager : MonoBehaviour
 {
     // cube prefab that is used to spawn all cubes
@@ -28,38 +26,57 @@ public class Manager : MonoBehaviour
     public List<string> moveList;
     // how much to scramble cube at start
     public int ScrambleAmt;
-    // list of all on-screen buttons
-    public GameObject XButton;
-    public GameObject YButton;
-    public GameObject ZButton;
 
-    // center position of cube
-    private Vector3 center;
-
-    public Canvas canvas;
+    // parent object for all cubes
+    public GameObject cubeParent;
 
     void Start()
     {
+        System.Diagnostics.ProcessStartInfo start = new();
+        start.FileName = Application.dataPath + "/c#test";
+
+        cubePrefab = Resources.Load("CubePrefab") as GameObject;
+        cubeMaterialBase = Resources.Load("cube") as Material;
+        rotateSpeed = 500;
+        ScrambleAmt = 1000;
+        if (cubeDims.Length != 3 || cubeDims[0] == 0 || cubeDims[1] == 0 || cubeDims[2] == 0)
+            cubeDims = new int[] { 3, 3, 3 };
+
+        cubeParent = new GameObject("Cube Parent");
+        cubeParent.transform.position = new Vector3((cubeDims[0] - 1) / 2f, (cubeDims[1] - 1) / 2f, (cubeDims[2] - 1) / 2f);
+        cubeParent.AddComponent<Rigidbody>();
+
         // spawn rubix cube, solved state, and a list of all cubes spawned
         var spawnOut = SpawnCube(cubeDims[0], cubeDims[1], cubeDims[2]);
+
         rubixCube = spawnOut.Item1;
         solvedState = spawnOut.Item2;
         allCubes = spawnOut.Item3;
-        center = spawnOut.Item4;
+
         // setting up queue of next moves
         MoveQueue = new Queue<System.Tuple<string, int, int>>();
+
         // setting up movelist
         // "m" is front middle vertical, "e" is front middle horizontal, "s" is middle wrapper between front and back
         string[] strArr = { "l", "li", "m", "mi", "r", "ri", "d", "di", "e", "ei", "u", "ui", "f", "fi", "s", "si", "b", "bi" };
+
+        // to test out one of each move:
         moveList.AddRange(strArr);
 
-        // SpawnButtons();
-
-        SpawnArrows();
+        // to spawn clickable arrows on cube
+        // SpawnArrows();
 
         // making sure initial state of cube is "solved"
         print(CheckSolved());
+
+        PrintArr(rubixCube);
+
         Scramble(ScrambleAmt);
+        // Rotate("x", 0, 1);
+        // Rotate("y", 0, 1);
+        // Rotate("z", 0, 1);
+        // Rotate("z", 0, -1);
+        // Rotate("z", 0, -1);
 
         // basic script to test every layer of a nxnxn cube forwards and backwards
         /*
@@ -73,6 +90,8 @@ public class Manager : MonoBehaviour
             Rotate("z", i, -1);
         }
         */
+
+
     }
 
     void Update()
@@ -140,23 +159,23 @@ public class Manager : MonoBehaviour
             if (axis == "x")
             {
                 if (direction == 1)
-                    StartCoroutine(RotateX(Vector3.left, layer));
+                    StartCoroutine(RotateX(-1, layer));
                 else
-                    StartCoroutine(RotateX(Vector3.right, layer));
+                    StartCoroutine(RotateX(1, layer));
             }
             else if (axis == "y")
             {
                 if (direction == 1)
-                    StartCoroutine(RotateY(Vector3.up, layer));
+                    StartCoroutine(RotateY(1, layer));
                 else
-                    StartCoroutine(RotateY(Vector3.down, layer));
+                    StartCoroutine(RotateY(-1, layer));
             }
             else // axis == z
             {
                 if (direction == 1)
-                    StartCoroutine(RotateZ(Vector3.back, layer));
+                    StartCoroutine(RotateZ(1, layer));
                 else
-                    StartCoroutine(RotateZ(Vector3.forward, layer));
+                    StartCoroutine(RotateZ(-1, layer));
             }
 
         }
@@ -180,24 +199,15 @@ public class Manager : MonoBehaviour
 
     }
 
-    void UpdateArray()
-    {
-        foreach(GameObject cube in allCubes)
-        {
-            cube.GetComponent<Cube>().arrayPos = new int[] { ((int)cube.transform.position.x), ((int)cube.transform.position.y), ((int)cube.transform.position.z)};
-            int[] ap = cube.GetComponent<Cube>().arrayPos;
-            rubixCube[ap[0], ap[1], ap[2]] = cube;
-        }
-    }
-
-    System.Tuple<GameObject[,,], GameObject[,,], List<GameObject>, Vector3> SpawnCube(int dim0, int dim1, int dim2)
+    System.Tuple<GameObject[,,], GameObject[,,], List<GameObject>> SpawnCube(int dim0, int dim1, int dim2)
     {
         // iterators for 3x3x3 array
         int x, y, z;
         GameObject[,,] rubixCube = new GameObject[cubeDims[0], cubeDims[1], cubeDims[2]];
         GameObject[,,] solvedState = new GameObject[cubeDims[0], cubeDims[1], cubeDims[2]];
         List<GameObject> allCubes = new();
-        center = new Vector3((cubeDims[0] - 1)/2f, (cubeDims[0] - 1)/2f, (cubeDims[0] - 1)/2f);
+        string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+        int alph = 0;
         for (x = 0; x < dim0; x++)
         {
             for (y = 0; y < dim1; y++)
@@ -207,7 +217,9 @@ public class Manager : MonoBehaviour
                     // spawning cube at position (x, y, z) centered around 0, 0, 0
                     if (x == 0 || y == 0 || z == 0 || x == dim0 - 1 || y == dim1 - 1 || z == dim2 - 1)
                     {
-                        rubixCube[x, y, z] = Instantiate(cubePrefab, new Vector3(x, y, z), Quaternion.identity);
+                        rubixCube[x, y, z] = Instantiate(cubePrefab, new Vector3(x, y, z), Quaternion.identity, cubeParent.transform);
+                        rubixCube[x, y, z].name = alphabet[alph].ToString();
+                        alph++;
                         allCubes.Add(rubixCube[x, y, z]);
                         // creating a copy of material to give to cube
                         Material thisMat = new(cubeMaterialBase);
@@ -244,10 +256,10 @@ public class Manager : MonoBehaviour
                 }
             }
         }
-        return System.Tuple.Create(rubixCube, solvedState, allCubes, center);
+        return System.Tuple.Create(rubixCube, solvedState, allCubes);
     }
 
-    IEnumerator RotateX(Vector3 spinDirection, int layer)
+    IEnumerator RotateX(int spinDirection, int layer)
     {
         float rotatedAmount = 0;
         float rotate;
@@ -266,12 +278,10 @@ public class Manager : MonoBehaviour
                 {
                     if (rubixCube[layer, a, b] != null)
                     {
-                        rubixCube[layer, a, b].transform.RotateAround(center, spinDirection, rotate);
+                        rubixCube[layer, a, b].transform.RotateAround(cubeParent.transform.position, rubixCube[layer, a, b].transform.parent.transform.right * spinDirection * 1, rotate);
                         if (rotatedAmount == 90)
                         {
-                            Vector3 pos = rubixCube[layer, a, b].transform.position;
-                            // rounding cube position to int rather than float
-                            rubixCube[layer, a, b].transform.position = new Vector3(Mathf.Round(pos.x), Mathf.Round(pos.y), Mathf.Round(pos.z));
+                            // rubixCube[layer, a, b].transform.localPosition = new Vector3(layer - (0.5f * (cubeDims[0] - 1)), a - (0.5f * (cubeDims[1] - 1)), b - (0.5f * (cubeDims[2] - 1)));
                         }
                     }
                 }
@@ -279,12 +289,14 @@ public class Manager : MonoBehaviour
             }
             yield return null;
         }
+        RotateXArr(spinDirection, layer);
         currentlyRotating = false;
-        UpdateArray();
         print(CheckSolved());
+        PrintArr(rubixCube);
+
     }
 
-    IEnumerator RotateY(Vector3 spinDirection, int layer)
+    IEnumerator RotateY(int spinDirection, int layer)
     {
         float rotatedAmount = 0;
         float rotate;
@@ -303,12 +315,10 @@ public class Manager : MonoBehaviour
                 {
                     if (rubixCube[a, layer, b] != null)
                     {
-                        rubixCube[a, layer, b].transform.RotateAround(center, spinDirection, rotate);
+                        rubixCube[a, layer, b].transform.RotateAround(cubeParent.transform.position, rubixCube[a, layer, b].transform.parent.transform.up * spinDirection * 1, rotate);
                         if (rotatedAmount == 90)
                         {
-                            Vector3 pos = rubixCube[a, layer, b].transform.position;
-                            // rounding cube position to int rather than float
-                            rubixCube[a, layer, b].transform.position = new Vector3(Mathf.Round(pos.x), Mathf.Round(pos.y), Mathf.Round(pos.z));
+                            // rubixCube[a, layer, b].transform.localPosition = new Vector3(a - (0.5f * (cubeDims[0] - 1)), layer - (0.5f * (cubeDims[1] - 1)), b - (0.5f * (cubeDims[2] - 1)));
                         }
                     }
                 }
@@ -317,11 +327,12 @@ public class Manager : MonoBehaviour
             yield return null;
         }
         currentlyRotating = false;
-        UpdateArray();
+        RotateYArr(spinDirection, layer);
         print(CheckSolved());
+        PrintArr(rubixCube);
     }
 
-    IEnumerator RotateZ(Vector3 spinDirection, int layer)
+    IEnumerator RotateZ(int spinDirection, int layer)
     {
         float rotatedAmount = 0;
         float rotate;
@@ -340,12 +351,10 @@ public class Manager : MonoBehaviour
                 {
                     if (rubixCube[a, b, layer] != null)
                     {
-                        rubixCube[a, b, layer].transform.RotateAround(center, spinDirection, rotate);
+                        rubixCube[a, b, layer].transform.RotateAround(cubeParent.transform.position, rubixCube[a, b, layer].transform.parent.transform.forward * spinDirection * 1, rotate);
                         if (rotatedAmount == 90)
                         {
-                            Vector3 pos = rubixCube[a, b, layer].transform.position;
-                            // rounding cube position to int rather than float
-                            rubixCube[a, b, layer].transform.position = new Vector3(Mathf.Round(pos.x), Mathf.Round(pos.y), Mathf.Round(pos.z));
+                            // rubixCube[a, b, layer].transform.localPosition = new Vector3(a - (0.5f * (cubeDims[0] - 1)), b - (0.5f * (cubeDims[1] - 1)), layer - (0.5f * (cubeDims[2] - 1)));
                         }
                     }
                 }
@@ -353,9 +362,10 @@ public class Manager : MonoBehaviour
             }
             yield return null;
         }
+        RotateZArr(spinDirection, layer);
         currentlyRotating = false;
-        UpdateArray();
         print(CheckSolved());
+        PrintArr(rubixCube);
     }
 
     void Scramble(int moves)
@@ -371,49 +381,13 @@ public class Manager : MonoBehaviour
             int dir = direction[Random.Range(0, 2)];
             int lay = -1;
             if (ax == "x")
-                lay = layerx[Random.Range(0, layerx.Length - 1)];
+                lay = layerx[Random.Range(0, layerx.Length)];
             if (ax == "y")
-                lay = layery[Random.Range(0, layery.Length - 1)];
+                lay = layery[Random.Range(0, layery.Length)];
             if (ax == "z")
-                lay = layerz[Random.Range(0, layerz.Length - 1)];
+                lay = layerz[Random.Range(0, layerz.Length)];
             Rotate(ax, lay, dir);
         }
-    }
-
-    void SpawnButtons()
-    {
-        foreach (Transform child in canvas.transform)
-            child.gameObject.SetActive(true);
-        // if (cubeDims[0] == 3 && cubeDims[1] == 3 && cubeDims[2] == 3)
-        //else
-        //{
-            for (int i = 1; i < cubeDims[0]; i++)
-            {
-                GameObject button = Instantiate(XButton, XButton.transform.position + new Vector3(60 * (i), 0, 0), Quaternion.identity, canvas.transform);
-                button.GetComponent<ScreenButton>().layer = i;
-                button.GetComponent<ScreenButton>().axis = "x";
-                button.GetComponent<ScreenButton>().direction = 1;
-                button.transform.GetChild(0).GetComponent<TMPro.TextMeshProUGUI>().text = i.ToString();
-            }
-            for (int i = 1; i < cubeDims[1]; i++)
-            {
-                GameObject button = Instantiate(YButton, YButton.transform.position + new Vector3(60 * (i), 0, 0), Quaternion.identity, canvas.transform);
-                button.GetComponent<ScreenButton>().layer = i;
-                button.GetComponent<ScreenButton>().axis = "y";
-                button.GetComponent<ScreenButton>().direction = 1;
-                button.transform.GetChild(0).GetComponent<TMPro.TextMeshProUGUI>().text = i.ToString();
-            }
-            for (int i = 1; i < cubeDims[2]; i++)
-            {
-                GameObject button = Instantiate(ZButton, ZButton.transform.position + new Vector3(60 * (i), 0, 0), Quaternion.identity, canvas.transform);
-                button.GetComponent<ScreenButton>().layer = i;
-                button.GetComponent<ScreenButton>().axis = "z";
-                button.GetComponent<ScreenButton>().direction = 1;
-                button.transform.GetChild(0).GetComponent<TMPro.TextMeshProUGUI>().text = i.ToString();
-            }
-
-
-       //}
     }
 
     void SpawnArrows()
@@ -436,6 +410,128 @@ public class Manager : MonoBehaviour
             GameObject tri2 = TrianglePrimitive.CreateObject();
             tri2.transform.position = new Vector3(i, cubeDims[2] - 1, cubeDims[2]);
             tri2.transform.rotation = Quaternion.Euler(-90, 0, 180);
+        }
+    }
+
+    void PrintArr(GameObject[,,] arr)
+    {
+        string row;
+        for (int i = 0; i < cubeDims[0]; i++)
+        {
+            row = "";
+            for (int j = 0; j < cubeDims[1]; j++)
+            {
+                for (int k = 0; k < cubeDims[2]; k++)
+                {
+                    if (i == 0 || i == cubeDims[0] - 1 || j == 0 || j == cubeDims[1] - 1 || k == 0 || k == cubeDims[2] - 1)
+                        row += arr[i, j, k].name + " ";
+                    else
+                        row += "@ ";
+                }
+                row += "\n";
+            }
+        }
+    }
+
+    GameObject[,,] CopyArr(GameObject[,,] arr)
+    {
+        GameObject[,,] copy = new GameObject[cubeDims[0], cubeDims[1], cubeDims[2]];
+        for (int i = 0; i < cubeDims[0]; i++)
+        {
+            for (int j = 0; j < cubeDims[1]; j++)
+            {
+                for (int k = 0; k < cubeDims[2]; k++)
+                {
+                    copy[i, j, k] = arr[i, j, k];
+                }
+            }
+        }
+        return copy;
+    }
+
+    void RotateXArr(int direction, int layer)
+    {
+        GameObject[,,] copy = CopyArr(rubixCube);
+        // rotate X left:
+        if (direction == 1)
+        {
+            for (int i = 0; i < cubeDims[1]; i++)
+            {
+                for (int j = 0; j < cubeDims[2]; j++)
+                {
+
+                    rubixCube[layer, i, j] = copy[layer, j, cubeDims[0] - 1 - i];
+                }
+            }
+        }
+
+        // rotate X right:
+        if (direction == -1)
+        {
+            for (int i = 0; i < cubeDims[1]; i++)
+            {
+                for (int j = 0; j < cubeDims[2]; j++)
+                {
+                    rubixCube[layer, j, cubeDims[0] - 1 - i] = copy[layer, i, j];
+                }
+            }
+        }
+    }
+
+    void RotateYArr(int direction, int layer)
+    {
+        GameObject[,,] copy = CopyArr(rubixCube);
+        // rotate Y left:
+        if (direction == -1)
+        {
+            for (int i = 0; i < cubeDims[0]; i++)
+            {
+                for (int j = 0; j < cubeDims[2]; j++)
+                {
+                    rubixCube[i, layer, j] = copy[j, layer, cubeDims[1] - 1 - i];
+                }
+            }
+        }
+
+        // rotate Y right:
+        if (direction == 1)
+        {
+            for (int i = 0; i < cubeDims[0]; i++)
+            {
+                for (int j = 0; j < cubeDims[2]; j++)
+                {
+                    rubixCube[j, layer, cubeDims[1] - 1 - i] = copy[i, layer, j];
+                }
+            }
+        }
+    }
+
+    void RotateZArr(int direction, int layer)
+    {
+
+        GameObject[,,] copy = CopyArr(rubixCube);
+        // rotate Z left:
+        if (direction == 1)
+        {
+            for (int i = 0; i < cubeDims[0]; i++)
+            {
+                for (int j = 0; j < cubeDims[1]; j++)
+                {
+                    rubixCube[i, j, layer] = copy[j, cubeDims[2] - 1 - i, layer];
+                }
+            }
+        }
+
+        // rotate Z right:
+        if (direction == -1)
+        {
+            for (int i = 0; i < cubeDims[0]; i++)
+            {
+                for (int j = 0; j < cubeDims[1]; j++)
+                {
+                    rubixCube[j, cubeDims[2] - 1 - i, layer] = copy[i, j, layer];
+                }
+            }
         }
     }
 }
